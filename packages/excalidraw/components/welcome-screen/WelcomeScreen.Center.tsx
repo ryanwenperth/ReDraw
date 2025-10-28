@@ -97,10 +97,10 @@ const Center = ({ children }: { children?: React.ReactNode }) => {
           <>
             {/* <Logo /> */}
             <Heading>{t("welcomeScreen.defaults.center_heading")}</Heading>
-            <Menu>
+            {/* <Menu>
               <MenuItemLoadScene />
               <MenuItemHelp />
-            </Menu>
+            </Menu> */}
           </>
         )}
       </div>
