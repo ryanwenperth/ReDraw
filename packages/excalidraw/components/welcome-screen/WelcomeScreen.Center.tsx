@@ -95,7 +95,7 @@ const Center = ({ children }: { children?: React.ReactNode }) => {
       <div className="welcome-screen-center">
         {children || (
           <>
-            <Logo />
+            {/* <Logo /> */}
             <Heading>{t("welcomeScreen.defaults.center_heading")}</Heading>
             <Menu>
               <MenuItemLoadScene />
