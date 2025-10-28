@@ -68,6 +68,7 @@ const MainMenu = Object.assign(
               )}
             </DropdownMenu.Content>
           </DropdownMenu>
+          *
         </MainMenuTunnel.In>
       );
     },
