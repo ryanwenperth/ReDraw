@@ -2,8 +2,8 @@
   // These tasks will run in order when initializing your CodeSandbox project.
   "setupTasks": [
     {
-      "name": "Install Dependencies",
-      "command": "yarn install"
+      "command": "yarn install",
+      "name": "Install Dependencies"
     }
   ],
 
@@ -11,18 +11,15 @@
   "tasks": {
     "build": {
       "name": "Build",
-      "command": "yarn build",
-      "runAtStart": false
+      "command": "yarn build"
     },
     "fix": {
       "name": "Fix",
-      "command": "yarn fix",
-      "runAtStart": false
+      "command": "yarn fix"
     },
     "prettier": {
       "name": "Prettify",
-      "command": "yarn prettier",
-      "runAtStart": false
+      "command": "yarn prettier"
     },
     "start": {
       "name": "Start Excalidraw",
@@ -34,15 +31,17 @@
     },
     "test": {
       "name": "Run Tests",
-      "command": "yarn test",
-      "runAtStart": false
+      "command": "yarn test"
     },
     "install-deps": {
       "name": "Install Dependencies",
       "command": "yarn install",
       "restartOn": {
-        "files": ["yarn.lock"],
+        "files": [
+          "yarn.lock"
+        ],
         "branch": false,
+        "clone": false,
         "resume": false
       }
     }

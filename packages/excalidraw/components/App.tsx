@@ -10744,71 +10744,71 @@ class App extends React.Component<AppProps, AppState> {
   ) => {
     event.preventDefault();
 
-    if (
-      (("pointerType" in event.nativeEvent &&
-        event.nativeEvent.pointerType === "touch") ||
-        ("pointerType" in event.nativeEvent &&
-          event.nativeEvent.pointerType === "pen" &&
-          // always allow if user uses a pen secondary button
-          event.button !== POINTER_BUTTON.SECONDARY)) &&
-      this.state.activeTool.type !== this.state.preferredSelectionTool.type
-    ) {
-      return;
-    }
+    // if (
+    //   (("pointerType" in event.nativeEvent &&
+    //     event.nativeEvent.pointerType === "touch") ||
+    //     ("pointerType" in event.nativeEvent &&
+    //       event.nativeEvent.pointerType === "pen" &&
+    //       // always allow if user uses a pen secondary button
+    //       event.button !== POINTER_BUTTON.SECONDARY)) &&
+    //   this.state.activeTool.type !== this.state.preferredSelectionTool.type
+    // ) {
+    //   return;
+    // }
 
-    const { x, y } = viewportCoordsToSceneCoords(event, this.state);
-    const element = this.getElementAtPosition(x, y, {
-      preferSelected: true,
-      includeLockedElements: true,
-    });
+    // const { x, y } = viewportCoordsToSceneCoords(event, this.state);
+    // const element = this.getElementAtPosition(x, y, {
+    //   preferSelected: true,
+    //   includeLockedElements: true,
+    // });
 
-    const selectedElements = this.scene.getSelectedElements(this.state);
-    const isHittingCommonBoundBox =
-      this.isHittingCommonBoundingBoxOfSelectedElements(
-        { x, y },
-        selectedElements,
-      );
+    // const selectedElements = this.scene.getSelectedElements(this.state);
+    // const isHittingCommonBoundBox =
+    //   this.isHittingCommonBoundingBoxOfSelectedElements(
+    //     { x, y },
+    //     selectedElements,
+    //   );
 
-    const type = element || isHittingCommonBoundBox ? "element" : "canvas";
+    // const type = element || isHittingCommonBoundBox ? "element" : "canvas";
 
-    const container = this.excalidrawContainerRef.current!;
-    const { top: offsetTop, left: offsetLeft } =
-      container.getBoundingClientRect();
-    const left = event.clientX - offsetLeft;
-    const top = event.clientY - offsetTop;
+    // const container = this.excalidrawContainerRef.current!;
+    // const { top: offsetTop, left: offsetLeft } =
+    //   container.getBoundingClientRect();
+    // const left = event.clientX - offsetLeft;
+    // const top = event.clientY - offsetTop;
 
-    trackEvent("contextMenu", "openContextMenu", type);
+    // trackEvent("contextMenu", "openContextMenu", type);
 
-    this.setState(
-      {
-        ...(element && !this.state.selectedElementIds[element.id]
-          ? {
-              ...this.state,
-              ...selectGroupsForSelectedElements(
-                {
-                  editingGroupId: this.state.editingGroupId,
-                  selectedElementIds: { [element.id]: true },
-                },
-                this.scene.getNonDeletedElements(),
-                this.state,
-                this,
-              ),
-              selectedLinearElement: isLinearElement(element)
-                ? new LinearElementEditor(
-                    element,
-                    this.scene.getNonDeletedElementsMap(),
-                  )
-                : null,
-            }
-          : this.state),
-        showHyperlinkPopup: false,
-      },
-      () => {
-        this.setState({
-          contextMenu: { top, left, items: this.getContextMenuItems(type) },
-        });
-      },
-    );
+    // this.setState(
+    //   {
+    //     ...(element && !this.state.selectedElementIds[element.id]
+    //       ? {
+    //           ...this.state,
+    //           ...selectGroupsForSelectedElements(
+    //             {
+    //               editingGroupId: this.state.editingGroupId,
+    //               selectedElementIds: { [element.id]: true },
+    //             },
+    //             this.scene.getNonDeletedElements(),
+    //             this.state,
+    //             this,
+    //           ),
+    //           selectedLinearElement: isLinearElement(element)
+    //             ? new LinearElementEditor(
+    //                 element,
+    //                 this.scene.getNonDeletedElementsMap(),
+    //               )
+    //             : null,
+    //         }
+    //       : this.state),
+    //     showHyperlinkPopup: false,
+    //   },
+    //   () => {
+    //     this.setState({
+    //       contextMenu: { top, left, items: this.getContextMenuItems(type) },
+    //     });
+    //   },
+    // );
   };
 
   private maybeDragNewGenericElement = (
