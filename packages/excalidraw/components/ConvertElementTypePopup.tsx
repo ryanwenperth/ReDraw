@@ -4,6 +4,10 @@ import {
   getLinearElementSubType,
   updateElbowArrowPoints,
 } from "@excalidraw/element";
+import {
+  isFlowchartNodeElement,
+  isElementCompletelyInViewport,
+} from "@excalidraw/element";
 
 import { pointFrom, pointRotateRads, type LocalPoint } from "@excalidraw/math";
 
@@ -379,6 +383,52 @@ const Panel = ({
     }
   }, [genericElements, app.scene]);
 
+  const handleCreateFlowNode = (direction: "up" | "right" | "down" | "left") => {
+    const selectedElements = elements;
+    if (selectedElements.length === 1 && isFlowchartNodeElement(selectedElements[0])) {
+      // create nodes via FlowChartCreator (same as Ctrl+Arrow keyboard shortcut)
+      app.flowChartCreator.createNodes(
+        selectedElements[0] as any,
+        app.state,
+        direction,
+        app.scene,
+      );
+
+      // if pending nodes are out of viewport, scroll to them (mimic keyboard behavior)
+      const pending = app.flowChartCreator.pendingNodes;
+      if (pending?.length) {
+        const canvasWidth = app.canvas.width / window.devicePixelRatio;
+        const canvasHeight = app.canvas.height / window.devicePixelRatio;
+
+        if (
+          !isElementCompletelyInViewport(
+            pending,
+            canvasWidth,
+            canvasHeight,
+            {
+              offsetLeft: app.state.offsetLeft,
+              offsetTop: app.state.offsetTop,
+              scrollX: app.state.scrollX,
+              scrollY: app.state.scrollY,
+              zoom: app.state.zoom,
+            },
+            app.scene.getNonDeletedElementsMap(),
+            app.getEditorUIOffsets(),
+          )
+        ) {
+          app.scrollToContent(pending, {
+            animate: true,
+            duration: 300,
+            fitToContent: true,
+            canvasOffsets: app.getEditorUIOffsets(),
+          });
+        }
+      }
+    }
+
+    panelRef.current?.focus();
+  };
+
   const SHAPES: [string, ReactNode][] =
     conversionType === "linear"
       ? [
@@ -454,18 +504,58 @@ const Panel = ({
       })}
       {/* Tablet-only cycle button (acts like Tab key to cycle shapes) */}
       {app.device?.isTouchScreen && !app.device?.viewport?.isMobile && (
-        <ToolButton
-          type="button"
-          className="Shape Cycle"
-          icon={<span style={{ fontSize: 14 }}>↹</span>}
-          aria-label="Cycle shape"
-          title="Cycle shape"
-          onClick={() => {
-            // Cycle to next shape in the current conversion type
-            convertElementTypes(app, { conversionType });
-            panelRef.current?.focus();
-          }}
-        />
+        <>
+          <ToolButton
+            type="button"
+            className="Shape Cycle"
+            icon={<span style={{ fontSize: 14 }}>↹</span>}
+            aria-label="Cycle shape"
+            title="Cycle shape"
+            onClick={() => {
+              // Cycle to next shape in the current conversion type
+              convertElementTypes(app, { conversionType });
+              panelRef.current?.focus();
+            }}
+          />
+
+          {/* Flowchart directional buttons - simulate Ctrl+Arrow on desktop */}
+          {elements.length === 1 && isFlowchartNodeElement(elements[0]) && (
+            <div className="Shape DirectionalButtons">
+              <ToolButton
+                type="button"
+                className="Shape Up"
+                icon={<span style={{ fontSize: 12 }}>▲</span>}
+                aria-label="Create node up"
+                title="Create node up"
+                onClick={() => handleCreateFlowNode("up")}
+              />
+              <ToolButton
+                type="button"
+                className="Shape Right"
+                icon={<span style={{ fontSize: 12 }}>▶</span>}
+                aria-label="Create node right"
+                title="Create node right"
+                onClick={() => handleCreateFlowNode("right")}
+              />
+              <ToolButton
+                type="button"
+                className="Shape Down"
+                icon={<span style={{ fontSize: 12 }}>▼</span>}
+                aria-label="Create node down"
+                title="Create node down"
+                onClick={() => handleCreateFlowNode("down")}
+              />
+              <ToolButton
+                type="button"
+                className="Shape Left"
+                icon={<span style={{ fontSize: 12 }}>◀</span>}
+                aria-label="Create node left"
+                title="Create node left"
+                onClick={() => handleCreateFlowNode("left")}
+              />
+            </div>
+          )}
+        </>
       )}
     </div>
   );

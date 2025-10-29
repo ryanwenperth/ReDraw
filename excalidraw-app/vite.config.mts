@@ -14,9 +14,23 @@ export default defineConfig(({ mode }) => {
   // https://vitejs.dev/config/
   return {
     server: {
+      // allow overriding port via VITE_APP_PORT (default 3000)
       port: Number(envVars.VITE_APP_PORT || 3000),
+      // expose the dev server on the network so it's reachable for port forwarding
+      // Accepts boolean or host string (e.g. '0.0.0.0'). If VITE_APP_HOST is set use it,
+      // otherwise default to true (bind to 0.0.0.0).
+      host:
+        envVars.VITE_APP_HOST === "true"
+          ? true
+          : envVars.VITE_APP_HOST
+          ? envVars.VITE_APP_HOST
+          : true,
       // open the browser
       open: true,
+      // Configure HMR host when running in container/remote environments
+      hmr: {
+        host: envVars.VITE_APP_HMR_HOST || undefined,
+      },
     },
     // We need to specify the envDir since now there are no
     //more located in parallel with the vite.config.ts file but in parent dir
