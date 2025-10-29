@@ -20,7 +20,7 @@ import {
 } from "./heading";
 import { LinearElementEditor } from "./linearElementEditor";
 import { mutateElement } from "./mutateElement";
-import { newArrowElement, newElement } from "./newElement";
+import { newArrowElement, newElement, newImageElement } from "./newElement";
 import { aabbForElement } from "./bounds";
 import { elementsAreInFrameBounds, elementOverlapsWithFrame } from "./frame";
 import {
@@ -253,22 +253,40 @@ const addNewNode = (
     direction,
   );
 
-  const nextNode = newElement({
-    type: element.type,
-    x: element.x + offsets.x,
-    y: element.y + offsets.y,
-    // TODO: extract this to a util
-    width: element.width,
-    height: element.height,
-    roundness: element.roundness,
-    roughness: element.roughness,
-    backgroundColor: element.backgroundColor,
-    strokeColor: element.strokeColor,
-    strokeWidth: element.strokeWidth,
-    opacity: element.opacity,
-    fillStyle: element.fillStyle,
-    strokeStyle: element.strokeStyle,
-  });
+  const nextNode =
+    element.type === "image"
+      ? newImageElement({
+          type: "image",
+          x: element.x + offsets.x,
+          y: element.y + offsets.y,
+          // TODO: extract this to a util
+          width: element.width,
+          height: element.height,
+          roundness: element.roundness,
+          roughness: element.roughness,
+          backgroundColor: element.backgroundColor,
+          strokeColor: element.strokeColor,
+          strokeWidth: element.strokeWidth,
+          opacity: element.opacity,
+          fillStyle: element.fillStyle,
+          strokeStyle: element.strokeStyle,
+        })
+      : newElement({
+          type: element.type,
+          x: element.x + offsets.x,
+          y: element.y + offsets.y,
+          // TODO: extract this to a util
+          width: element.width,
+          height: element.height,
+          roundness: element.roundness,
+          roughness: element.roughness,
+          backgroundColor: element.backgroundColor,
+          strokeColor: element.strokeColor,
+          strokeWidth: element.strokeWidth,
+          opacity: element.opacity,
+          fillStyle: element.fillStyle,
+          strokeStyle: element.strokeStyle,
+        });
 
   invariant(
     isFlowchartNodeElement(nextNode),
@@ -331,22 +349,40 @@ export const addNewNodes = (
       nextX = startX + offsetX;
     }
 
-    const nextNode = newElement({
-      type: startNode.type,
-      x: nextX,
-      y: nextY,
-      // TODO: extract this to a util
-      width: startNode.width,
-      height: startNode.height,
-      roundness: startNode.roundness,
-      roughness: startNode.roughness,
-      backgroundColor: startNode.backgroundColor,
-      strokeColor: startNode.strokeColor,
-      strokeWidth: startNode.strokeWidth,
-      opacity: startNode.opacity,
-      fillStyle: startNode.fillStyle,
-      strokeStyle: startNode.strokeStyle,
-    });
+    const nextNode =
+      startNode.type === "image"
+        ? newImageElement({
+            type: "image",
+            x: nextX,
+            y: nextY,
+            // TODO: extract this to a util
+            width: startNode.width,
+            height: startNode.height,
+            roundness: startNode.roundness,
+            roughness: startNode.roughness,
+            backgroundColor: startNode.backgroundColor,
+            strokeColor: startNode.strokeColor,
+            strokeWidth: startNode.strokeWidth,
+            opacity: startNode.opacity,
+            fillStyle: startNode.fillStyle,
+            strokeStyle: startNode.strokeStyle,
+          })
+        : newElement({
+            type: startNode.type,
+            x: nextX,
+            y: nextY,
+            // TODO: extract this to a util
+            width: startNode.width,
+            height: startNode.height,
+            roundness: startNode.roundness,
+            roughness: startNode.roughness,
+            backgroundColor: startNode.backgroundColor,
+            strokeColor: startNode.strokeColor,
+            strokeWidth: startNode.strokeWidth,
+            opacity: startNode.opacity,
+            fillStyle: startNode.fillStyle,
+            strokeStyle: startNode.strokeStyle,
+          });
 
     invariant(
       isFlowchartNodeElement(nextNode),

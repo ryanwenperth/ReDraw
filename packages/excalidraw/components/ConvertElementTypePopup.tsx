@@ -452,6 +452,21 @@ const Panel = ({
           />
         );
       })}
+      {/* Tablet-only cycle button (acts like Tab key to cycle shapes) */}
+      {app.device?.isTouchScreen && !app.device?.viewport?.isMobile && (
+        <ToolButton
+          type="button"
+          className="Shape Cycle"
+          icon={<span style={{ fontSize: 14 }}>↹</span>}
+          aria-label="Cycle shape"
+          title="Cycle shape"
+          onClick={() => {
+            // Cycle to next shape in the current conversion type
+            convertElementTypes(app, { conversionType });
+            panelRef.current?.focus();
+          }}
+        />
+      )}
     </div>
   );
 };
@@ -923,6 +938,15 @@ const convertElementType = <
   ShapeCache.delete(element);
 
   if (isConvertibleGenericType(targetType)) {
+    // Converting to 'image' requires user interaction (selecting a file).
+    // The UI's image button already handles that case via `handleImageConversion`.
+    // Avoid programmatic creation of an image element here to keep types narrow
+    // and prevent assigning an 'image' type to `newElement` which only accepts
+    // generic (non-image) types.
+    if (targetType === "image") {
+      return element;
+    }
+
     const nextElement = bumpVersion(
       newElement({
         ...element,
