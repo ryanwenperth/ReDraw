@@ -153,7 +153,9 @@ export type ExcalidrawImageElement = _ExcalidrawElementBase &
     scale: [number, number];
     /** whether an element is cropped */
     crop: ImageCrop | null;
-  }>;
+  }> & {
+    instruction?: string;
+  };
 
 export type InitializedExcalidrawImageElement = MarkNonNullable<
   ExcalidrawImageElement,
@@ -186,7 +188,8 @@ export type ExcalidrawGenericElement =
 export type ExcalidrawFlowchartNodeElement =
   | ExcalidrawRectangleElement
   | ExcalidrawDiamondElement
-  | ExcalidrawEllipseElement;
+  | ExcalidrawEllipseElement
+  | ExcalidrawImageElement;
 
 export type ExcalidrawRectanguloidElement =
   | ExcalidrawRectangleElement
@@ -433,6 +436,10 @@ export type ExcalidrawLinearElementSubType =
   | "curvedArrow"
   | "elbowArrow";
 
-export type ConvertibleGenericTypes = "rectangle" | "diamond" | "ellipse";
+export type ConvertibleGenericTypes =
+  | "rectangle"
+  | "diamond"
+  | "ellipse"
+  | "image";
 export type ConvertibleLinearTypes = ExcalidrawLinearElementSubType;
 export type ConvertibleTypes = ConvertibleGenericTypes | ConvertibleLinearTypes;

@@ -33,7 +33,7 @@ const MainMenu = Object.assign(
 
       return (
         <MainMenuTunnel.In>
-          <DropdownMenu open={appState.openMenu === "canvas"}>
+          {/* <DropdownMenu open={appState.openMenu === "canvas"}>
             <DropdownMenu.Trigger
               onToggle={() => {
                 setAppState({
@@ -67,8 +67,7 @@ const MainMenu = Object.assign(
                 </fieldset>
               )}
             </DropdownMenu.Content>
-          </DropdownMenu>
-          *
+          </DropdownMenu> */}
         </MainMenuTunnel.In>
       );
     },

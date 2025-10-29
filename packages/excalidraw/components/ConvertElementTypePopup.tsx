@@ -48,8 +48,8 @@ import {
   newArrowElement,
   newElement,
   newLinearElement,
+  newImageElement, // Add this
 } from "@excalidraw/element";
-
 import { ShapeCache } from "@excalidraw/element";
 
 import { updateBindings } from "@excalidraw/element";
@@ -90,8 +90,9 @@ import {
   RectangleIcon,
   roundArrowIcon,
   sharpArrowIcon,
+  ImageIcon,
 } from "./icons";
-
+import { fileOpen } from "../data/filesystem";
 import type App from "./App";
 
 import type { AppClassProperties } from "../types";
@@ -106,7 +107,7 @@ type ExcalidrawConvertibleElement =
   | ExcalidrawLinearElement;
 
 // indicates order of switching
-const GENERIC_TYPES = ["rectangle", "diamond", "ellipse"] as const;
+const GENERIC_TYPES = ["rectangle", "diamond", "ellipse", "image"] as const;
 // indicates order of switching
 const LINEAR_TYPES = [
   "line",
@@ -187,6 +188,92 @@ const ConvertElementTypePopup = ({ app }: { app: App }) => {
   return <Panel app={app} elements={selectedElements} />;
 };
 
+const handleImageConversion = async (
+  app: App,
+  selectedElement: ExcalidrawElement,
+) => {
+  const { x, y, width, height, frameId } = selectedElement;
+
+  try {
+    const files = await fileOpen({
+      description: "Image files",
+      extensions: ["jpg", "png", "svg", "gif", "webp", "bmp", "ico"],
+      multiple: false,
+    });
+
+    if (!files || (Array.isArray(files) && files.length === 0)) {
+      return;
+    }
+
+    const file = Array.isArray(files) ? files[0] : files;
+    if (!file) {
+      return;
+    }
+
+    // Insert the image first
+    await app.insertImages([file], x + width / 2, y + height / 2);
+
+    // Find the newly created image element
+    const allElements = app.scene.getElementsIncludingDeleted();
+    const newImageElement = allElements
+      .filter((el) => el.type === "image" && !el.isDeleted)
+      .sort((a, b) => b.updated - a.updated)[0]; // Get most recently updated
+
+    if (newImageElement) {
+      // Resize the image to match the original shape's dimensions
+      mutateElement(newImageElement, app.scene.getNonDeletedElementsMap(), {
+        x,
+        y,
+        width,
+        height,
+        frameId,
+      });
+
+      if (newImageElement && selectedElement.boundElements) {
+        // Update the image element with the bound elements from the original shape
+        mutateElement(newImageElement, app.scene.getNonDeletedElementsMap(), {
+          boundElements: selectedElement.boundElements,
+        });
+
+        // Update all arrows that were bound to the original shape
+        const elementsMap = app.scene.getNonDeletedElementsMap();
+        for (const boundElement of selectedElement.boundElements) {
+          const arrow = elementsMap.get(boundElement.id);
+          if (arrow && isArrowElement(arrow)) {
+            // Update arrow's start/end binding to point to the new image
+            const updates: any = {};
+            if (arrow.startBinding?.elementId === selectedElement.id) {
+              updates.startBinding = {
+                ...arrow.startBinding,
+                elementId: newImageElement.id,
+              };
+            }
+            if (arrow.endBinding?.elementId === selectedElement.id) {
+              updates.endBinding = {
+                ...arrow.endBinding,
+                elementId: newImageElement.id,
+              };
+            }
+            if (Object.keys(updates).length > 0) {
+              mutateElement(arrow, elementsMap, updates);
+            }
+          }
+        }
+      }
+    }
+
+    // Delete the original shape
+    app.scene.replaceAllElements(
+      app.scene
+        .getElementsIncludingDeleted()
+        .map((el) =>
+          el.id === selectedElement.id ? { ...el, isDeleted: true } : el,
+        ),
+    );
+  } catch (error) {
+    console.error("Image conversion error:", error);
+  }
+};
 const Panel = ({
   app,
   elements,
@@ -305,6 +392,7 @@ const Panel = ({
           ["rectangle", RectangleIcon],
           ["diamond", DiamondIcon],
           ["ellipse", EllipseIcon],
+          ["image", ImageIcon],
         ]
       : [];
 
@@ -343,7 +431,13 @@ const Panel = ({
             keyBindingLabel={""}
             aria-label={type}
             data-testid={`toolbar-${type}`}
-            onChange={() => {
+            onChange={async () => {
+              //console.log(" button clicked"); // Add this debug line
+              if (type === "image") {
+                //console.log("Image button clicked"); // Add this debug line
+                await handleImageConversion(app, genericElements[0]);
+                return;
+              }
               if (app.state.activeTool.type !== type) {
                 trackEvent("convertElementType", type, "ui");
               }

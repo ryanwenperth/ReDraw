@@ -4,7 +4,7 @@ import React, { useContext } from "react";
 import { flushSync } from "react-dom";
 import rough from "roughjs/bin/rough";
 import { nanoid } from "nanoid";
-
+import Swal from "sweetalert2";
 import {
   clamp,
   pointFrom,
@@ -478,6 +478,12 @@ import type {
 import type { RoughCanvas } from "roughjs/bin/canvas";
 import type { Action, ActionResult } from "../actions/types";
 
+export type NormalizedZoomValue = number & { _brand: "normalizedZoom" };
+
+export type Zoom = Readonly<{
+  value: NormalizedZoomValue;
+}>;
+
 const AppContext = React.createContext<AppClassProperties>(null!);
 const AppPropsContext = React.createContext<AppProps>(null!);
 
@@ -572,6 +578,73 @@ const gesture: Gesture = {
 };
 
 class App extends React.Component<AppProps, AppState> {
+  zoomBackState: {
+    scrollX: number;
+    scrollY: number;
+    zoom: any;
+    // zoom: number & { _brand: "normalizedZoom" };
+    flag: boolean;
+  } = {
+    scrollX: 0,
+    scrollY: 0,
+    zoom: null, //this.state.zoom,
+    flag: false,
+  };
+  scrollBackToPrivious = (
+    scrollX: number,
+    scrollY: number,
+    zoom: any,
+    animate: boolean,
+    duration: number,
+  ) => {
+    if (animate) {
+      const origScrollX = this.state.scrollX;
+      const origScrollY = this.state.scrollY;
+      const origZoom = this.state.zoom.value;
+
+      const cancel = easeToValuesRAF({
+        fromValues: {
+          scrollX: origScrollX,
+          scrollY: origScrollY,
+          zoom: origZoom,
+        },
+        toValues: { scrollX, scrollY, zoom: zoom.value },
+        interpolateValue: (from, to, progress, key) => {
+          // for zoom, use different easing
+          if (key === "zoom") {
+            return from * Math.pow(to / from, easeOut(progress));
+          }
+          // handle using default
+          return undefined;
+        },
+        onStep: ({ scrollX, scrollY, zoom }) => {
+          this.setState({
+            scrollX,
+            scrollY,
+            zoom: { value: zoom },
+          });
+        },
+        onStart: () => {
+          this.setState({ shouldCacheIgnoreZoom: true });
+        },
+        onEnd: () => {
+          this.setState({ shouldCacheIgnoreZoom: false });
+        },
+        onCancel: () => {
+          this.setState({ shouldCacheIgnoreZoom: false });
+        },
+        duration: duration ?? 500,
+        // duration: duration ?? duration : 500 ,
+      });
+
+      this.cancelInProgressAnimation = () => {
+        cancel();
+        this.cancelInProgressAnimation = null;
+      };
+    } else {
+      this.setState({ scrollX, scrollY, zoom });
+    }
+  };
   canvas: AppClassProperties["canvas"];
   interactiveCanvas: AppClassProperties["interactiveCanvas"] = null;
   rc: RoughCanvas;
@@ -6919,6 +6992,75 @@ class App extends React.Component<AppProps, AppState> {
     const clicklength =
       event.timeStamp - (this.lastPointerDownEvent?.timeStamp ?? 0);
 
+    if (this.state.viewModeEnabled) {
+      if (clicklength < 300) {
+        const hitElement = this.getElementAtPosition(
+          scenePointer.x,
+          scenePointer.y,
+        );
+        if (isImageElement(hitElement)) {
+          if (!this.zoomBackState.flag) {
+            this.zoomBackState.scrollY = this.state.scrollY;
+            this.zoomBackState.scrollX = this.state.scrollX;
+            this.zoomBackState.zoom = this.state.zoom;
+            this.zoomBackState.flag = true;
+            this.scrollToContent(hitElement, {
+              animate: true,
+              duration: 500,
+              fitToViewport: true,
+              viewportZoomFactor: 1,
+              //fitToContent: true,
+              //canvasOffsets: this.getEditorUIOffsets(),
+            });
+            return;
+          } else {
+            this.zoomBackState.flag = false;
+
+            this.scrollBackToPrivious(
+              this.zoomBackState.scrollX,
+              this.zoomBackState.scrollY,
+              this.zoomBackState.zoom,
+              true,
+              500,
+            );
+
+            return;
+          }
+        }
+      }
+      if (clicklength > 1000) {
+        const hitElement = this.getElementAtPosition(
+          scenePointer.x,
+          scenePointer.y,
+        );
+        if (isImageElement(hitElement)) {
+          Swal.fire({
+            title: "instruction",
+            input: "textarea",
+            inputPlaceholder: "write instruction here",
+            inputValue: hitElement.instruction,
+            showCancelButton: true, // Optional
+            //htmlContainer: "vertical-scroll-only",
+          }).then((result) => {
+            if (result.isConfirmed && result.value) {
+              hitElement.instruction = result.value;
+            }
+          });
+
+          this.setToast({
+            message:
+              // ${hitElement.id} +
+              // ${hitElement.type} +
+              // ${hitElement.scale} +
+              // ${hitElement.fileId} +
+              `${hitElement.instruction}`,
+            closable: true,
+            duration: Infinity,
+          });
+        }
+      }
+    }
+
     if (this.device.editor.isMobile && clicklength < 300) {
       const hitElement = this.getElementAtPosition(
         scenePointer.x,
@@ -10473,7 +10615,7 @@ class App extends React.Component<AppProps, AppState> {
     }
   };
 
-  private insertImages = async (
+  public insertImages = async (
     imageFiles: File[],
     sceneX: number,
     sceneY: number,
