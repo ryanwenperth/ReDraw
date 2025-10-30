@@ -55,6 +55,7 @@ import {
   newImageElement, // Add this
 } from "@excalidraw/element";
 import { ShapeCache } from "@excalidraw/element";
+import { CaptureUpdateAction, makeNextSelectedElementIds } from "@excalidraw/element";
 
 import { updateBindings } from "@excalidraw/element";
 
@@ -512,8 +513,59 @@ const Panel = ({
             aria-label="Cycle shape"
             title="Cycle shape"
             onClick={() => {
-              // Cycle to next shape in the current conversion type
-              convertElementTypes(app, { conversionType });
+              // If we're in the middle of creating a flowchart (Ctrl held on desktop),
+              // confirm the pending node(s) as if Control was released.
+              if (app.flowChartCreator.isCreatingChart) {
+                const pending = app.flowChartCreator.pendingNodes;
+
+                if (pending?.length) {
+                  app.scene.insertElements(pending);
+                }
+
+                const firstNode = pending?.[0];
+                if (firstNode) {
+                  app.setState((prevState) => ({
+                    selectedElementIds: makeNextSelectedElementIds(
+                      {
+                        [firstNode.id]: true,
+                      },
+                      prevState,
+                    ),
+                  }));
+
+                  if (
+                    !isElementCompletelyInViewport(
+                      [firstNode],
+                      app.canvas.width / window.devicePixelRatio,
+                      app.canvas.height / window.devicePixelRatio,
+                      {
+                        offsetLeft: app.state.offsetLeft,
+                        offsetTop: app.state.offsetTop,
+                        scrollX: app.state.scrollX,
+                        scrollY: app.state.scrollY,
+                        zoom: app.state.zoom,
+                      },
+                      app.scene.getNonDeletedElementsMap(),
+                      app.getEditorUIOffsets(),
+                    )
+                  ) {
+                    app.scrollToContent(firstNode, {
+                      animate: true,
+                      duration: 300,
+                      canvasOffsets: app.getEditorUIOffsets(),
+                    });
+                  }
+                }
+
+                app.flowChartCreator.clear();
+                app.syncActionResult({
+                  captureUpdate: CaptureUpdateAction.IMMEDIATELY,
+                });
+              } else {
+                // Otherwise, cycle to next shape in the current conversion type
+                convertElementTypes(app, { conversionType });
+              }
+
               panelRef.current?.focus();
             }}
           />

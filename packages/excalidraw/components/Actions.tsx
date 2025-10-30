@@ -74,10 +74,16 @@ import {
   TextSizeIcon,
   adjustmentsIcon,
   DotsHorizontalIcon,
+  FlowChartIcon,
   SelectionIcon,
 } from "./icons";
 
 import { Island } from "./Island";
+import {
+  getConversionTypeFromElements,
+  convertElementTypes,
+  convertElementTypePopupAtom,
+} from "./ConvertElementTypePopup";
 
 import type {
   AppClassProperties,
@@ -801,6 +807,35 @@ export const CompactShapeActions = ({
     isLinearElement(targetElements[0]) &&
     !isElbowArrow(targetElements[0]);
 
+  const canShowShapeSwitch = () => {
+    if (!targetElements.length) {
+      return false;
+    }
+    // hide when an image is selected
+    if (targetElements.some((el) => el.type === "image")) {
+      return false;
+    }
+    // only show when elements are convertible (same rule as popup/tab)
+    return Boolean(getConversionTypeFromElements(targetElements));
+  };
+
+  const onSwitchShape = () => {
+    const conversionType = getConversionTypeFromElements(targetElements);
+    if (
+      convertElementTypes(app as any, {
+        conversionType,
+        direction: "right",
+      })
+    ) {
+      // commit to history, same as TAB handler in App.tsx
+      (app as any).store?.scheduleCapture?.();
+      // ensure the shape switch panel is visible, same as TAB behavior
+      if (conversionType) {
+        app.updateEditorAtom(convertElementTypePopupAtom, { type: "panel" });
+      }
+    }
+  };
+
   return (
     <div className="compact-shape-actions">
       {/* Stroke Color */}
@@ -837,6 +872,20 @@ export const CompactShapeActions = ({
       {showLineEditorAction && (
         <div className="compact-action-item">
           {renderAction("toggleLinearEditor")}
+        </div>
+      )}
+
+      {/* Shape Switch (mimics TAB key) */}
+      {canShowShapeSwitch() && (
+      // {targetElements.length > 0 && (
+        <div className="compact-action-item">
+          <ToolButton
+            type="button"
+            icon={FlowChartIcon}
+            title={t("labels.shapeSwitch")}
+            aria-label={t("labels.shapeSwitch")}
+            onClick={onSwitchShape}
+          />
         </div>
       )}
 

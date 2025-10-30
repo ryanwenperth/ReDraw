@@ -4332,6 +4332,91 @@ class App extends React.Component<AppProps, AppState> {
 
           if (
             selectedElements.length === 1 &&
+            isImageElement(selectedElements[0])
+          ) {
+            // Create a next node using flowchart creator, then convert it to image
+            const direction = getLinkDirectionFromKey(event.key);
+            this.flowChartCreator.createNodes(
+              selectedElements[0] as any,
+              this.state,
+              direction,
+              this.scene,
+            );
+
+            const pending = this.flowChartCreator.pendingNodes;
+            if (pending?.length) {
+              // Insert placeholder node + arrow to establish bindings
+              this.scene.insertElements(pending);
+
+              const nextNode = pending[0];
+
+              // Duplicate the selected image and place/resize it to match placeholder
+              const elements = this.scene.getElementsIncludingDeleted();
+              const { duplicatedElements, elementsWithDuplicates } = duplicateElements({
+                type: "in-place",
+                elements,
+                idsOfElementsToDuplicate: new Map([
+                  [selectedElements[0].id, selectedElements[0]],
+                ]),
+                appState: {
+                  editingGroupId: this.state.editingGroupId,
+                  selectedGroupIds: this.state.selectedGroupIds,
+                },
+                overrides: () => ({
+                  x: (nextNode as any).x,
+                  y: (nextNode as any).y,
+                  width: (nextNode as any).width,
+                  height: (nextNode as any).height,
+                  frameId: (nextNode as any).frameId ?? selectedElements[0].frameId,
+                }),
+              } as any);
+
+              this.scene.replaceAllElements(elementsWithDuplicates);
+
+              const newImage = duplicatedElements[0];
+
+              // Rebind the new image to the arrow that was pointing to placeholder
+              const elementsMap = this.scene.getNonDeletedElementsMap();
+              for (const el of pending) {
+                const arrow = elementsMap.get(el.id);
+                if (arrow && isArrowElement(arrow)) {
+                  const updates: any = {};
+                  if (arrow.startBinding?.elementId === (nextNode as any).id) {
+                    updates.startBinding = {
+                      ...arrow.startBinding,
+                      elementId: newImage.id,
+                    };
+                  }
+                  if (arrow.endBinding?.elementId === (nextNode as any).id) {
+                    updates.endBinding = {
+                      ...arrow.endBinding,
+                      elementId: newImage.id,
+                    };
+                  }
+                  if (Object.keys(updates).length) {
+                    this.scene.mutateElement(arrow, updates);
+                  }
+                }
+              }
+
+              // Delete the temporary generic node
+              this.scene.mutateElement(nextNode as any, { isDeleted: true } as any);
+
+              this.setState((prevState) => ({
+                selectedElementIds: makeNextSelectedElementIds(
+                  { [newImage.id]: true },
+                  prevState,
+                ),
+              }));
+
+              this.syncActionResult({
+                captureUpdate: CaptureUpdateAction.IMMEDIATELY,
+              });
+
+              this.flowChartCreator.clear();
+            }
+          } else if (
+            selectedElements.length === 1 &&
             isFlowchartNodeElement(selectedElements[0])
           ) {
             this.flowChartCreator.createNodes(
@@ -10886,71 +10971,71 @@ class App extends React.Component<AppProps, AppState> {
   ) => {
     event.preventDefault();
 
-    // if (
-    //   (("pointerType" in event.nativeEvent &&
-    //     event.nativeEvent.pointerType === "touch") ||
-    //     ("pointerType" in event.nativeEvent &&
-    //       event.nativeEvent.pointerType === "pen" &&
-    //       // always allow if user uses a pen secondary button
-    //       event.button !== POINTER_BUTTON.SECONDARY)) &&
-    //   this.state.activeTool.type !== this.state.preferredSelectionTool.type
-    // ) {
-    //   return;
-    // }
+    if (
+      (("pointerType" in event.nativeEvent &&
+        event.nativeEvent.pointerType === "touch") ||
+        ("pointerType" in event.nativeEvent &&
+          event.nativeEvent.pointerType === "pen" &&
+          // always allow if user uses a pen secondary button
+          event.button !== POINTER_BUTTON.SECONDARY)) &&
+      this.state.activeTool.type !== this.state.preferredSelectionTool.type
+    ) {
+      return;
+    }
 
-    // const { x, y } = viewportCoordsToSceneCoords(event, this.state);
-    // const element = this.getElementAtPosition(x, y, {
-    //   preferSelected: true,
-    //   includeLockedElements: true,
-    // });
+    const { x, y } = viewportCoordsToSceneCoords(event, this.state);
+    const element = this.getElementAtPosition(x, y, {
+      preferSelected: true,
+      includeLockedElements: true,
+    });
 
-    // const selectedElements = this.scene.getSelectedElements(this.state);
-    // const isHittingCommonBoundBox =
-    //   this.isHittingCommonBoundingBoxOfSelectedElements(
-    //     { x, y },
-    //     selectedElements,
-    //   );
+    const selectedElements = this.scene.getSelectedElements(this.state);
+    const isHittingCommonBoundBox =
+      this.isHittingCommonBoundingBoxOfSelectedElements(
+        { x, y },
+        selectedElements,
+      );
 
-    // const type = element || isHittingCommonBoundBox ? "element" : "canvas";
+    const type = element || isHittingCommonBoundBox ? "element" : "canvas";
 
-    // const container = this.excalidrawContainerRef.current!;
-    // const { top: offsetTop, left: offsetLeft } =
-    //   container.getBoundingClientRect();
-    // const left = event.clientX - offsetLeft;
-    // const top = event.clientY - offsetTop;
+    const container = this.excalidrawContainerRef.current!;
+    const { top: offsetTop, left: offsetLeft } =
+      container.getBoundingClientRect();
+    const left = event.clientX - offsetLeft;
+    const top = event.clientY - offsetTop;
 
-    // trackEvent("contextMenu", "openContextMenu", type);
+    trackEvent("contextMenu", "openContextMenu", type);
 
-    // this.setState(
-    //   {
-    //     ...(element && !this.state.selectedElementIds[element.id]
-    //       ? {
-    //           ...this.state,
-    //           ...selectGroupsForSelectedElements(
-    //             {
-    //               editingGroupId: this.state.editingGroupId,
-    //               selectedElementIds: { [element.id]: true },
-    //             },
-    //             this.scene.getNonDeletedElements(),
-    //             this.state,
-    //             this,
-    //           ),
-    //           selectedLinearElement: isLinearElement(element)
-    //             ? new LinearElementEditor(
-    //                 element,
-    //                 this.scene.getNonDeletedElementsMap(),
-    //               )
-    //             : null,
-    //         }
-    //       : this.state),
-    //     showHyperlinkPopup: false,
-    //   },
-    //   () => {
-    //     this.setState({
-    //       contextMenu: { top, left, items: this.getContextMenuItems(type) },
-    //     });
-    //   },
-    // );
+    this.setState(
+      {
+        ...(element && !this.state.selectedElementIds[element.id]
+          ? {
+              ...this.state,
+              ...selectGroupsForSelectedElements(
+                {
+                  editingGroupId: this.state.editingGroupId,
+                  selectedElementIds: { [element.id]: true },
+                },
+                this.scene.getNonDeletedElements(),
+                this.state,
+                this,
+              ),
+              selectedLinearElement: isLinearElement(element)
+                ? new LinearElementEditor(
+                    element,
+                    this.scene.getNonDeletedElementsMap(),
+                  )
+                : null,
+            }
+          : this.state),
+        showHyperlinkPopup: false,
+      },
+      () => {
+        this.setState({
+          contextMenu: { top, left, items: this.getContextMenuItems(type) },
+        });
+      },
+    );
   };
 
   private maybeDragNewGenericElement = (
